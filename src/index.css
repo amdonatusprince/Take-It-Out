@@ -94,9 +94,10 @@ label {
 textarea {
   font-size: 18px;
   padding: 5px;
-  width: auto; 
+  width: 50%; 
+  background-color:rgb(225, 224, 223);
   margin: auto;
-  border: 1px solid #ccc;
+  border: 1px solid #555454;
 }
 button {
   font-size: 18px;
