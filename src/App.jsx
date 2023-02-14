@@ -42,6 +42,7 @@ function FeedbackForm() {
   // Initialize state for text field input
   const [feedbackInput, setFeedbackInput] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Calculate the starting and ending index of the array to display
   const startIndex = (currentPage - 1) * 5;
@@ -78,22 +79,29 @@ function FeedbackForm() {
 
   const sendFeedback = async () => {
     setFeedbackInput('')
+
+    if (feedbackInput.trim().length === 0 || feedbackInput.length < 5) {
+      setErrorMessage('Please enter valid feedback with at least 5 characters');
+      return;
+    }
     try {
       const ethereum = getEthereumObject();
       if (ethereum) {
-        const provider = new ethers.providers.Web3Provider(ethereum);
-        const signer = provider.getSigner();
+        const provider = new ethers.BrowserProvider(ethereum);
+        const signer = await provider.getSigner();
         const feedbackContract = new ethers.Contract(contractAddress, contractABI, signer);
         const feedbackTxn = await feedbackContract.submitFeedback(feedbackInput);
         console.log("Mining...", feedbackTxn)
         await feedbackTxn.wait();
         console.log("Mined -- ", feedbackTxn.hash);
+        setErrorMessage('');
 
       } else {
         console.log("Ethereum object doesn't exist!");
       }
     } catch (error) {
       console.log(error);
+      setErrorMessage('Error sending feedback. Please try again later.');
     }     
 
 };
@@ -102,8 +110,8 @@ const getAllFeedback = async () => {
   try {
     const ethereum = getEthereumObject();
     if (ethereum) {
-      const provider = new ethers.providers.Web3Provider(ethereum);
-      const signer = provider.getSigner();
+      const provider = new ethers.BrowserProvider(ethereum);
+      const signer = await provider.getSigner();
       const feedbackContract = new ethers.Contract(contractAddress, contractABI, signer);
       
       const feedbacks = await feedbackContract.getAllFeedback();
@@ -112,7 +120,7 @@ const getAllFeedback = async () => {
       feedbacks.forEach(({ user, timestamp, feedback }) => {
         feedbackCleaned.push({
           address: user,
-          timestamp: new Date(timestamp * 1000),
+          timestamp: new Date(Number(timestamp) * 1000),
           feedback: feedback
         });
       });
@@ -161,14 +169,17 @@ const getAllFeedback = async () => {
             id="feedbackInput" 
             value={feedbackInput} 
             onChange={event => setFeedbackInput(event.target.value)} 
+            onFocus={() => setErrorMessage('')} 
             rows="5" cols="60" 
             form="feedbackForm"> Enter your feedback here...
           </textarea>
           {currentAccount && ( <button 
                                     className="btn" 
                                     form="feedbackForm" 
-                                    onClick={sendFeedback}> Submit Feedback
+                                    onClick={sendFeedback}
+                                    > Submit Feedback
           </button> )} 
+          {errorMessage && <div className="error">{errorMessage}</div>}
 
           {!currentAccount && ( <h4>Connect wallet to submit feedback</h4> )} 
           {!currentAccount && ( <button 
