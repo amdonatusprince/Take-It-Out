@@ -2,6 +2,8 @@ import React,  { useEffect, useState } from 'react'
 import { ethers } from "ethers";
 import './App.css'
 import abi from "./utils/Feedback.json";
+// import env from './env';
+
 
 const getEthereumObject = () => window.ethereum;
 
@@ -42,19 +44,32 @@ function FeedbackForm() {
   // Initialize state for text field input
   const [feedbackInput, setFeedbackInput] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const [errorMessage, setErrorMessage] = useState('');
 
+
+  const totalItems = feedbackItems.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
   // Calculate the starting and ending index of the array to display
-  const startIndex = (currentPage - 1) * 5;
-  const endIndex = startIndex + 5;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+ const endIndex = startIndex + itemsPerPage;
 
   // Get the slice of the array to display based on the current page
   const displayedFeedback = feedbackItems.slice(startIndex, endIndex);
 
   // Function to handle going to the next page
-  function handleNextPage() {
+  const handleNextPage = () => {
+  if (currentPage < totalPages) {
     setCurrentPage(currentPage + 1);
   }
+};
+
+const handlePreviousPage = () => {
+  if (currentPage > 1) {
+    setCurrentPage(currentPage - 1);
+  }
+};
 
   let feedbackCleaned = [];
   let updatedFeedback = [];
@@ -108,11 +123,9 @@ function FeedbackForm() {
 
 const getAllFeedback = async () => {
   try {
-    const ethereum = getEthereumObject();
-    if (ethereum) {
-      const provider = new ethers.BrowserProvider(ethereum);
-      const signer = await provider.getSigner();
-      const feedbackContract = new ethers.Contract(contractAddress, contractABI, signer);
+      const RPC =  import.meta.env.VITE_RPC
+      const feedbackContract = new ethers.Contract(contractAddress, contractABI, ethers.getDefaultProvider(RPC));
+      console.log('Connected');
       
       const feedbacks = await feedbackContract.getAllFeedback();
       console.log(feedbacks)
@@ -129,9 +142,7 @@ const getAllFeedback = async () => {
         updatedFeedback.push(feedbackCleaned[i]);
       }
       setFeedbackItems(updatedFeedback);
-    } else {
-      console.log("Ethereum object doesn't exist!")
-    }
+
   } catch (error) {
     console.log(error);
   }
@@ -145,11 +156,11 @@ const getAllFeedback = async () => {
 
   
     useEffect(() => {
+      getAllFeedback();
     async function getAccount() {
       const account = await findMetaMaskAccount();
       if (account !== null) {
         setCurrentAccount(account);
-        getAllFeedback();
       }
     }
     getAccount();
@@ -161,7 +172,7 @@ const getAllFeedback = async () => {
         <h1>Talk Your Own 😲</h1>
         <p>Welcome to Talk Your Own! This is a platform where you can talk as e dey do you.</p>
       </header>
-
+      
       <section id="feedbackBody">
         <h2>Wetin You Won Yarn The Public???</h2>
         <div>
@@ -190,7 +201,7 @@ const getAllFeedback = async () => {
       
       <section>
         
-        {currentAccount && (<h2>Wetin Oda Pipu Don Yarn 👀 </h2> )} 
+        {<h2>Wetin Oda Pipu Don Yarn 👀 </h2> } 
 
         <div>
       {displayedFeedback.map((feedback, index) => {
@@ -207,10 +218,17 @@ const getAllFeedback = async () => {
             <div>Message: {feedback.feedback}</div>
           </div>
         );
+
+        
       })}
-      {feedbackItems.length > endIndex && (
-        <button onClick={handleNextPage}>View More 🤭</button>
-      )}
+
+           {currentPage < totalPages && (
+      <button onClick={handleNextPage}>View More 🤭</button>
+    )}
+         {currentPage > 1 && (
+      <button onClick={handlePreviousPage}>View Previous Page 😏</button>
+    )}
+
     </div>
       </section>
       
